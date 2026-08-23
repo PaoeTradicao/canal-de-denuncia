@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Canal de Denúncias - Pão & Tradição</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<style>
+  :root{
+    --azul:#13215E;
+    --dourado:#EFAD4C;
+    --creme:#F5F0DC;
+    --erro:#B23A3A;
+    --ok:#2E7D4F;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Inter', Arial, sans-serif;
+    background:var(--creme);
+    color:var(--azul);
+    min-height:100vh;
+  }
+  header{
+    background:var(--azul);
+    color:#fff;
+    padding:24px 16px;
+    text-align:center;
+  }
+  header h1{margin:0;font-size:1.4rem;}
+  header p{margin:6px 0 0;font-size:0.85rem;opacity:0.85;}
+  .container{
+    max-width:640px;
+    margin:0 auto;
+    padding:24px 16px 64px;
+  }
+  nav{
+    display:flex;
+    gap:8px;
+    justify-content:center;
+    margin-bottom:24px;
+    flex-wrap:wrap;
+  }
+  nav button{
+    background:#fff;
+    border:1px solid var(--azul);
+    color:var(--azul);
+    padding:10px 16px;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:0.85rem;
+    font-weight:600;
+  }
+  nav button.active{
+    background:var(--azul);
+    color:#fff;
+  }
+  .card{
+    background:#fff;
+    border-radius:10px;
+    padding:24px;
+    box-shadow:0 1px 4px rgba(0,0,0,0.08);
+  }
+  .view{display:none;}
+  .view.active{display:block;}
+  label{
+    display:block;
+    font-weight:600;
+    margin:16px 0 6px;
+    font-size:0.9rem;
+  }
+  label:first-of-type{margin-top:0;}
+  select, textarea, input[type=text]{
+    width:100%;
+    padding:10px;
+    border:1px solid #ccc;
+    border-radius:6px;
+    font-family:inherit;
+    font-size:0.95rem;
+  }
+  textarea{min-height:140px;resize:vertical;}
+  .hint{font-size:0.8rem;color:#666;margin-top:4px;}
+  .anon-notice{
+    background:var(--creme);
+    border-left:4px solid var(--dourado);
+    padding:12px 14px;
+    border-radius:6px;
+    font-size:0.85rem;
+    margin-bottom:20px;
+    line-height:1.5;
+  }
+  input[type=file]{
+    width:100%;
+    padding:10px;
+    border:1px dashed #ccc;
+    border-radius:6px;
+    font-size:0.85rem;
+  }
+  .file-list{margin-top:8px;font-size:0.8rem;color:#555;}
+  .file-list div{
+    display:flex;
+    justify-content:space-between;
+    padding:4px 0;
+    border-bottom:1px solid #eee;
+  }
+  .file-list button{
+    background:none;
+    border:none;
+    color:var(--erro);
+    cursor:pointer;
+    font-size:0.8rem;
+  }
+  button.primary{
+    background:var(--dourado);
+    color:var(--azul);
+    border:none;
+    padding:14px;
+    border-radius:6px;
+    font-weight:700;
+    font-size:1rem;
+    cursor:pointer;
+    width:100%;
+    margin-top:24px;
+  }
+  button.primary:disabled{opacity:0.6;cursor:not-allowed;}
+  button.secondary{
+    background:#fff;
+    border:1px solid var(--azul);
+    color:var(--azul);
+    padding:12px;
+    border-radius:6px;
+    font-weight:600;
+    cursor:pointer;
+    width:100%;
+  }
+  .protocolo-box{
+    text-align:center;
+    padding:20px;
+  }
+  .protocolo-code{
+    font-size:1.8rem;
+    font-weight:800;
+    letter-spacing:2px;
+    color:var(--azul);
+    background:var(--creme);
+    border:2px dashed var(--dourado);
+    border-radius:8px;
+    padding:16px;
+    margin:16px 0;
+  }
+  .status-badge{
+    display:inline-block;
+    padding:4px 12px;
+    border-radius:20px;
+    font-size:0.8rem;
+    font-weight:700;
+    text-transform:uppercase;
+  }
+  .status-recebida{background:#FDE8CC;color:#8A5A00;}
+  .status-analise{background:#D6E4F0;color:#1E4E7A;}
+  .status-concluida{background:#D9EFDD;color:var(--ok);}
+  .erro-msg{
+    color:var(--erro);
+    font-size:0.85rem;
+    margin-top:12px;
+  }
+  .ok-msg{
+    color:var(--ok);
+    font-size:0.85rem;
+    margin-top:12px;
+  }
+  .resposta-box{
+    margin-top:20px;
+    padding:14px;
+    background:var(--creme);
+    border-radius:6px;
+    font-size:0.9rem;
+    line-height:1.5;
+  }
+  .categoria-list{
+    list-style:none;
+    padding:0;
+    margin:0;
+  }
+  .categoria-list li{
+    padding:12px;
+    border:1px solid #eee;
+    border-radius:6px;
+    margin-bottom:10px;
+    cursor:pointer;
+    font-size:0.9rem;
+  }
+  .categoria-list li.selected{
+    border-color:var(--dourado);
+    background:var(--creme);
+    font-weight:600;
+  }
+  .admin-item{
+    border:1px solid #eee;
+    border-radius:6px;
+    padding:14px;
+    margin-bottom:10px;
+    cursor:pointer;
+  }
+  .admin-item:hover{background:#fafafa;}
+  .admin-detail{margin-top:20px;}
+  .spinner{
+    text-align:center;
+    padding:40px;
+    color:#888;
+  }
+  footer{
+    text-align:center;
+    font-size:0.75rem;
+    color:#888;
+    padding:16px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Canal de Denúncias</h1>
+  <p>Pão &amp; Tradição — canal confidencial e anônimo</p>
+</header>
+
+<div class="container">
+
+  <nav>
+    <button id="nav-denunciar" class="active" onclick="showView('denunciar')">Fazer Denúncia</button>
+    <button id="nav-consultar" onclick="showView('consultar')">Consultar Protocolo</button>
+    <button id="nav-admin" onclick="showView('admin')">Área Restrita</button>
+  </nav>
+
+  <!-- VIEW: DENUNCIAR -->
+  <div id="view-denunciar" class="view active">
+    <div class="card">
+      <div class="anon-notice">
+        Esta denúncia é <strong>100% anônima</strong>. Não coletamos nome, e-mail ou qualquer dado que possa te identificar. Ao final, você receberá um código de protocolo — guarde-o, é a única forma de acompanhar sua denúncia.
+      </div>
+
+      <div id="form-denuncia">
+        <label>Categoria</label>
+        <ul class="categoria-list" id="categoria-list"></ul>
+
+        <label for="descricao">Descreva a situação</label>
+        <textarea id="descricao" placeholder="Conte o que aconteceu, quando, quem esteve envolvido e qualquer detalhe relevante."></textarea>
+        <div class="hint">Não inclua seu nome ou informações que te identifiquem no texto, se quiser manter total anonimato.</div>
+
+        <button class="primary" id="btn-enviar" onclick="enviarDenuncia()">Enviar Denúncia</button>
+        <div id="denuncia-erro" class="erro-msg"></div>
+      </div>
+
+      <div id="protocolo-resultado" style="display:none;">
+        <div class="protocolo-box">
+          <p>Denúncia enviada com sucesso.</p>
+          <p><strong>Guarde este código:</strong></p>
+          <div class="protocolo-code" id="protocolo-code"></div>
+          <p class="hint">Use este código na aba "Consultar Protocolo" para acompanhar o andamento e ver respostas, sem precisar se identificar.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW: CONSULTAR -->
+  <div id="view-consultar" class="view">
+    <div class="card">
+      <label for="protocolo-input">Digite seu código de protocolo</label>
+      <input type="text" id="protocolo-input" placeholder="Ex: A1B2C3D4">
+      <button class="secondary" style="margin-top:16px;" onclick="consultarProtocolo()">Consultar</button>
+      <div id="consulta-erro" class="erro-msg"></div>
+      <div id="consulta-resultado" style="display:none;margin-top:20px;">
+        <p><strong>Status:</strong> <span id="consulta-status" class="status-badge"></span></p>
+        <p><strong>Categoria:</strong> <span id="consulta-categoria"></span></p>
+        <p><strong>Enviada em:</strong> <span id="consulta-data"></span></p>
+        <div id="consulta-resposta-box" class="resposta-box" style="display:none;">
+          <strong>Resposta:</strong>
+          <p id="consulta-resposta-texto"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VIEW: ADMIN -->
+  <div id="view-admin" class="view">
+    <div class="card">
+      <div id="admin-login">
+        <label for="admin-email">E-mail</label>
+        <input type="text" id="admin-email" placeholder="seu@email.com">
+        <label for="admin-senha">Senha</label>
+        <input type="text" id="admin-senha" placeholder="Senha" style="-webkit-text-security:disc;">
+        <button class="primary" onclick="adminLogin()">Entrar</button>
+        <div id="admin-login-erro" class="erro-msg"></div>
+      </div>
+
+      <div id="admin-painel" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <strong>Denúncias recebidas</strong>
+          <button class="secondary" style="width:auto;padding:8px 14px;" onclick="adminLogout()">Sair</button>
+        </div>
+        <div id="admin-lista"></div>
+        <div id="admin-detalhe" class="admin-detail" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>Pão &amp; Tradição — Canal de Denúncias</footer>
+
+<script>
+// ============================================================
+// CONFIGURAÇÃO DO FIREBASE
+// Substitua pelos dados do SEU projeto Firebase (novo, separado
+// dos outros apps). Crie em https://console.firebase.google.com
+// ============================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyAJG-SWOLCWFfCqS2Q2G2OK46DS-AflXzk",
+  authDomain: "canal-de-denuncias-f038b.firebaseapp.com",
+  projectId: "canal-de-denuncias-f038b",
+  storageBucket: "canal-de-denuncias-f038b.firebasestorage.app",
+  messagingSenderId: "474061047070",
+  appId: "1:474061047070:web:09615b1f02c91fd9bef50f"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+const CATEGORIAS = [
+  "Assédio moral",
+  "Assédio sexual",
+  "Discriminação",
+  "Fraude ou desvio financeiro",
+  "Segurança do trabalho",
+  "Conflito de interesse",
+  "Outros"
+];
+
+let categoriaSelecionada = null;
+
+function montarCategorias(){
+  const ul = document.getElementById('categoria-list');
+  ul.innerHTML = '';
+  CATEGORIAS.forEach(cat => {
+    const li = document.createElement('li');
+    li.textContent = cat;
+    li.onclick = () => {
+      categoriaSelecionada = cat;
+      document.querySelectorAll('#categoria-list li').forEach(el => el.classList.remove('selected'));
+      li.classList.add('selected');
+    };
+    ul.appendChild(li);
+  });
+}
+montarCategorias();
+
+function gerarProtocolo(){
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for(let i=0;i<8;i++){
+    code += chars[Math.floor(Math.random()*chars.length)];
+  }
+  return code;
+}
+
+function showView(view){
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + view).classList.add('active');
+  document.getElementById('nav-' + view).classList.add('active');
+}
+
+async function enviarDenuncia(){
+  const erroBox = document.getElementById('denuncia-erro');
+  erroBox.textContent = '';
+
+  const descricao = document.getElementById('descricao').value.trim();
+
+  if(!categoriaSelecionada){
+    erroBox.textContent = 'Selecione uma categoria.';
+    return;
+  }
+  if(!descricao){
+    erroBox.textContent = 'Descreva a situação.';
+    return;
+  }
+
+  const btn = document.getElementById('btn-enviar');
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+
+  try{
+    const protocolo = gerarProtocolo();
+
+    await db.collection('denuncias').doc(protocolo).set({
+      categoria: categoriaSelecionada,
+      descricao: descricao,
+      status: 'recebida',
+      resposta: '',
+      criadaEm: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    document.getElementById('form-denuncia').style.display = 'none';
+    document.getElementById('protocolo-resultado').style.display = 'block';
+    document.getElementById('protocolo-code').textContent = protocolo;
+
+  }catch(err){
+    erroBox.textContent = 'Erro ao enviar. Tente novamente. (' + err.message + ')';
+    btn.disabled = false;
+    btn.textContent = 'Enviar Denúncia';
+  }
+}
+
+async function consultarProtocolo(){
+  const erroBox = document.getElementById('consulta-erro');
+  const resultBox = document.getElementById('consulta-resultado');
+  erroBox.textContent = '';
+  resultBox.style.display = 'none';
+
+  const protocolo = document.getElementById('protocolo-input').value.trim().toUpperCase();
+  if(!protocolo){
+    erroBox.textContent = 'Digite um código de protocolo.';
+    return;
+  }
+
+  try{
+    const doc = await db.collection('denuncias').doc(protocolo).get();
+    if(!doc.exists){
+      erroBox.textContent = 'Protocolo não encontrado. Verifique o código.';
+      return;
+    }
+    const data = doc.data();
+
+    const statusMap = {
+      recebida: ['Recebida', 'status-recebida'],
+      analise: ['Em análise', 'status-analise'],
+      concluida: ['Concluída', 'status-concluida']
+    };
+    const [statusLabel, statusClass] = statusMap[data.status] || statusMap.recebida;
+
+    const statusEl = document.getElementById('consulta-status');
+    statusEl.textContent = statusLabel;
+    statusEl.className = 'status-badge ' + statusClass;
+
+    document.getElementById('consulta-categoria').textContent = data.categoria || '-';
+    document.getElementById('consulta-data').textContent = data.criadaEm
+      ? data.criadaEm.toDate().toLocaleDateString('pt-BR')
+      : '-';
+
+    const respBox = document.getElementById('consulta-resposta-box');
+    if(data.resposta){
+      respBox.style.display = 'block';
+      document.getElementById('consulta-resposta-texto').textContent = data.resposta;
+    }else{
+      respBox.style.display = 'none';
+    }
+
+    resultBox.style.display = 'block';
+  }catch(err){
+    erroBox.textContent = 'Erro ao consultar. Tente novamente.';
+  }
+}
+
+// ---------- ADMIN ----------
+
+async function adminLogin(){
+  const erroBox = document.getElementById('admin-login-erro');
+  erroBox.textContent = '';
+  const email = document.getElementById('admin-email').value.trim();
+  const senha = document.getElementById('admin-senha').value;
+
+  try{
+    await auth.signInWithEmailAndPassword(email, senha);
+  }catch(err){
+    erroBox.textContent = 'Login inválido.';
+  }
+}
+
+function adminLogout(){
+  auth.signOut();
+}
+
+auth.onAuthStateChanged((user) => {
+  const loginBox = document.getElementById('admin-login');
+  const painel = document.getElementById('admin-painel');
+  if(user){
+    loginBox.style.display = 'none';
+    painel.style.display = 'block';
+    carregarDenuncias();
+  }else{
+    loginBox.style.display = 'block';
+    painel.style.display = 'none';
+  }
+});
+
+async function carregarDenuncias(){
+  const lista = document.getElementById('admin-lista');
+  lista.innerHTML = '<div class="spinner">Carregando...</div>';
+
+  try{
+    const snap = await db.collection('denuncias').orderBy('criadaEm', 'desc').get();
+    lista.innerHTML = '';
+    if(snap.empty){
+      lista.innerHTML = '<p class="hint">Nenhuma denúncia recebida ainda.</p>';
+      return;
+    }
+    snap.forEach(doc => {
+      const data = doc.data();
+      const div = document.createElement('div');
+      div.className = 'admin-item';
+      const data_str = data.criadaEm ? data.criadaEm.toDate().toLocaleDateString('pt-BR') : '-';
+      div.innerHTML = `<strong>${data.categoria}</strong> — ${data_str}
+        <br><span class="status-badge status-${data.status === 'concluida' ? 'concluida' : (data.status === 'analise' ? 'analise' : 'recebida')}">${data.status}</span>
+        <br><span style="font-size:0.8rem;color:#888;">Protocolo: ${doc.id}</span>`;
+      div.onclick = () => abrirDenuncia(doc.id, data);
+      lista.appendChild(div);
+    });
+  }catch(err){
+    lista.innerHTML = '<p class="erro-msg">Erro ao carregar denúncias.</p>';
+  }
+}
+
+function abrirDenuncia(id, data){
+  const box = document.getElementById('admin-detalhe');
+  box.style.display = 'block';
+
+  box.innerHTML = `
+    <hr>
+    <p><strong>Protocolo:</strong> ${id}</p>
+    <p><strong>Categoria:</strong> ${data.categoria}</p>
+    <p><strong>Descrição:</strong></p>
+    <p>${data.descricao}</p>
+    <label for="admin-status">Status</label>
+    <select id="admin-status">
+      <option value="recebida" ${data.status === 'recebida' ? 'selected' : ''}>Recebida</option>
+      <option value="analise" ${data.status === 'analise' ? 'selected' : ''}>Em análise</option>
+      <option value="concluida" ${data.status === 'concluida' ? 'selected' : ''}>Concluída</option>
+    </select>
+    <label for="admin-resposta">Resposta (visível ao denunciante via protocolo)</label>
+    <textarea id="admin-resposta">${data.resposta || ''}</textarea>
+    <button class="primary" onclick="salvarDenuncia('${id}')">Salvar</button>
+    <div id="admin-salvo-msg"></div>
+  `;
+}
+
+async function salvarDenuncia(id){
+  const status = document.getElementById('admin-status').value;
+  const resposta = document.getElementById('admin-resposta').value;
+  const msg = document.getElementById('admin-salvo-msg');
+
+  try{
+    await db.collection('denuncias').doc(id).update({
+      status: status,
+      resposta: resposta
+    });
+    msg.className = 'ok-msg';
+    msg.textContent = 'Salvo com sucesso.';
+    carregarDenuncias();
+  }catch(err){
+    msg.className = 'erro-msg';
+    msg.textContent = 'Erro ao salvar.';
+  }
+}
+</script>
+</body>
+</html>
